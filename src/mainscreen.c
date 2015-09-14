@@ -231,6 +231,12 @@ void mainScreen_logic(float timeElapsed, SceneEvents *evt)
 			case OS_key_cancel:
 				buttPressed = 1;
 				break;
+			case OS_key_left:
+				buttPressed = 4;
+				break;
+			case OS_key_right:
+				buttPressed = 5;
+				break;
 			}
 		}
 
@@ -268,6 +274,23 @@ void mainScreen_logic(float timeElapsed, SceneEvents *evt)
 		if (buttPressed == 1)
 		{
 			showBrowser = 0;
+		}
+
+		if (buttPressed == 4) {
+			if (browserSelected > 20 * browserPage) {
+				browserSelected -= 1;
+				browserTouched = browserSelected;
+				browserLoadLevel(browserSelected);
+			}
+		}
+		if (buttPressed == 5) {
+			if (browserSelected < 20 * (1 + browserPage) - 1 &&
+			    browserPage < nLevels)
+			{
+				browserSelected += 1;
+				browserTouched = browserSelected;
+				browserLoadLevel(browserSelected);
+			}
 		}
 
 		if (browserAllowPlay)
