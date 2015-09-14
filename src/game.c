@@ -257,6 +257,10 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 					phlipple_engine_ror(eng);
 					break;
 
+				case OS_key_restart:
+					phlipple_engine_restart(eng);
+					break;
+
 				case 27:
 					SceneManager_return();
 					return;
@@ -303,6 +307,13 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 				if (gameState == STATE_PAUSE)
 					buttPressed = 2;
 				break;
+			case OS_key_restart:
+				if (gameState == STATE_STUCK ||
+				    gameState == STATE_FAILED)
+				{
+					buttPressed = 2;
+					break;
+				}
 			}
 		}
 

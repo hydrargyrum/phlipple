@@ -44,6 +44,7 @@ enum OS_keys {OS_key_left,
               OS_key_down,
               OS_key_rol,
               OS_key_ror,
+              OS_key_restart,
               OS_key_ok,
               OS_key_cancel
              };

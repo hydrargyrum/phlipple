@@ -259,6 +259,9 @@ void gameLoop()
 			case SDLK_d:
 				k = OS_key_ror;
 				break;
+			case SDLK_r:
+				k = OS_key_restart;
+				break;
 			case SDLK_RETURN:
 			case SDLK_KP_ENTER:
 				k = OS_key_ok;
