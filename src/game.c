@@ -76,9 +76,20 @@ static float *msgCol;
 
 static int currLev = 0;
 
-// states 0 - play, 1 - finished, 2 - failed, 3 - stuck, 4 - next level, 5 -
-// menu, 6 - restart, 7 - tut, 8 - ???, 9 - pause
-static int gameState = 0;
+enum game_state_t {
+	STATE_PLAY = 0,
+	STATE_FINISHED,
+	STATE_FAILED,
+	STATE_STUCK,
+	STATE_NEXT_LEVEL,
+	STATE_MENU,
+	STATE_RESTART,
+	STATE_TUT,
+	STATE_SPECIAL, // no name
+	STATE_PAUSE,
+};
+
+static int gameState = STATE_PLAY;
 
 static int leftButt;
 static int middleButt;
@@ -142,7 +153,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 		interpolator_setVal(&rotRightAlpha, GFX_ROT_BUTT_IDLE_ALPHA);
 		interpolator_setValImmediate(&pauseButtAlpha, 0);
 
-		gameState = 0;
+		gameState = STATE_PLAY;
 
 		if (levels[currLev]->tutPic > 0)
 		{
@@ -154,7 +165,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&rightButtAlpha, 1);
 			interpolator_setValImmediate(&tutPicAlpha, 0);
 			interpolator_setVal(&tutPicAlpha, 1);
-			gameState = 7;
+			gameState = STATE_TUT;
 		}
 
 		if (levels[currLev]->tutDesc != NULL)
@@ -186,7 +197,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 	interpolator_animate(&gameAlpha, alphAnim);
 	interpolator_animate(&pauseButtAlpha, alphAnim / 2.0);
 
-	if (gameState == 0)
+	if (gameState == STATE_PLAY)
 	{
 		if (rotLeftAlpha.idle)
 			interpolator_setVal(&rotLeftAlpha, GFX_ROT_BUTT_IDLE_ALPHA);
@@ -199,25 +210,25 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 	if (pauseButtAlpha.idle)
 	{
-		if (gameState == 9)
+		if (gameState == STATE_PAUSE)
 		{
 			interpolator_setVal(&pauseButtAlpha, 0);
 		}
 		else
 		{
-			if (gameState == 0)
+			if (gameState == STATE_PLAY)
 				interpolator_setVal(&pauseButtAlpha, GFX_PAUSE_BUTT_ALPHA);
 		}
 	}
 
-	if (gameState == 0 && msgAlpha.idle)
+	if (gameState == STATE_PLAY && msgAlpha.idle)
 		interpolator_setVal(&msgAlpha, 0);
 
 	for (int e = 0; e < evt->nevt; e++)
 	{
 		SceneEvent v = evt->evts[e];
 
-		if (!(gameState == 2 || gameState == 3 || gameState == 7))
+		if (!(gameState == STATE_FAILED || gameState == STATE_STUCK || gameState == STATE_TUT))
 			if (v.type == SCENEEVENT_TYPE_KEYDOWN)
 			{
 				switch (v.keyVal)
@@ -285,11 +296,11 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 				buttPressed = 2;
 				break;
 			case OS_key_cancel:
-				if (gameState == 0)
+				if (gameState == STATE_PLAY)
 					buttPressed = 4;
-				if (gameState > 0)
+				if (gameState > STATE_PLAY)
 					buttPressed = 1;
-				if (gameState == 9)
+				if (gameState == STATE_PAUSE)
 					buttPressed = 2;
 				break;
 			}
@@ -297,7 +308,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 		if (v.type == SCENEEVENT_TYPE_FINGERDOWN)
 		{
-			if (gameState == 0)
+			if (gameState == STATE_PLAY)
 			{
 				if (downX > (right - (GFX_ROT_BUTT_DISPLACEMENT) - 1))
 				{
@@ -349,20 +360,20 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 		}
 	}
 
-	if (gameState == 0)
+	if (gameState == STATE_PLAY)
 	{
 		if (buttPressed == 4)
 		{
 			interpolator_setVal(&pauseButtAlpha,
 			                    GFX_PAUSE_BUTT_PRESSED_ALPHA);
-			gameState = 9;
+			gameState = STATE_PAUSE;
 			OS_playSound(OS_snd_click);
 		}
 
 
 		if (eng->finished)
 		{
-			gameState = 1;
+			gameState = STATE_FINISHED;
 
 			strcpy(centreMsg, wellDoneMsgs[rand() % 7]);
 			setCentreMsg(0);
@@ -389,7 +400,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 		if (eng->failed)
 		{
-			gameState = 2;
+			gameState = STATE_FAILED;
 			sprintf(centreMsg, "Failed!");
 			setCentreMsg(1);
 
@@ -406,7 +417,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 		if (eng->stuck)
 		{
-			gameState = 2;
+			gameState = STATE_STUCK;
 			sprintf(centreMsg, "Stuck!");
 			setCentreMsg(1);
 
@@ -424,7 +435,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 	}
 
 	// pause menu
-	if (gameState == 9)
+	if (gameState == STATE_PAUSE)
 	{
 		interpolator_setVal(&rotLeftAlpha, 0);
 		interpolator_setVal(&rotRightAlpha, 0);
@@ -447,7 +458,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&gameAlpha, 1);
 
 			phlipple_engine_restart(eng);
-			gameState = 6;
+			gameState = STATE_RESTART;
 			OS_playSound(OS_snd_click);
 		}
 
@@ -459,7 +470,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&middleButtAlpha, 0);
 			interpolator_setVal(&gameAlpha, 1);
 
-			gameState = 6;
+			gameState = STATE_RESTART;
 			OS_playSound(OS_snd_click);
 		}
 
@@ -474,32 +485,32 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&rotLeftAlpha, 0);
 			interpolator_setVal(&pauseButtAlpha, 0);
 
-			gameState = 5;
+			gameState = STATE_MENU;
 			OS_playSound(OS_snd_click);
 		}
 	}
 
-	if (gameState > 0)
+	if (gameState > STATE_PLAY)
 	{
 		interpolator_animate(&leftButtAlpha, alphAnim);
 		interpolator_animate(&rightButtAlpha, alphAnim);
 		interpolator_animate(&middleButtAlpha, alphAnim);
 	}
 
-	if (gameState == 8 || gameState == 7)
+	if (gameState == STATE_SPECIAL || gameState == STATE_TUT)
 	{
 		rightButt = 2;
 		interpolator_animate(&rightButtAlpha, alphAnim);
 
-		if (tutPicAlpha.idle && gameState == 8)
+		if (tutPicAlpha.idle && gameState == STATE_SPECIAL)
 		{
-			gameState = 0;
+			gameState = STATE_PLAY;
 			tutPic = -1;
 			tutMsg = NULL;
 		}
 	}
 
-	if (gameState == 7)
+	if (gameState == STATE_TUT)
 	{
 		if (buttPressed == 2)
 		{
@@ -513,12 +524,12 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 			sprintf(centreMsg, "Level %d", currLev + 1);
 			setCentreMsg(0);
-			gameState = 8;
+			gameState = STATE_SPECIAL;
 			OS_playSound(OS_snd_click);
 		}
 	}
 
-	if (gameState == 2 || gameState == 3)
+	if (gameState == STATE_FAILED || gameState == STATE_STUCK)
 	{
 		leftButt = 1;
 		rightButt = 3;
@@ -535,7 +546,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 
 			phlipple_engine_restart(eng);
 
-			gameState = 6;
+			gameState = STATE_RESTART;
 			OS_playSound(OS_snd_click);
 			return;
 		}
@@ -548,13 +559,13 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&rightButtAlpha, 0);
 			interpolator_setVal(&gameAlpha, 0);
 
-			gameState = 5;
+			gameState = STATE_MENU;
 			OS_playSound(OS_snd_click);
 			return;
 		}
 	}
 
-	if (gameState == 1)
+	if (gameState == STATE_FINISHED)
 	{
 		// level finished
 		leftButt = 1;
@@ -570,7 +581,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&rotRightAlpha, 0);
 			interpolator_setVal(&gameAlpha, 0);
 
-			gameState = 4;
+			gameState = STATE_NEXT_LEVEL;
 			OS_playSound(OS_snd_click);
 			return;
 		}
@@ -585,13 +596,13 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			interpolator_setVal(&rotRightAlpha, 0);
 			interpolator_setVal(&gameAlpha, 0);
 
-			gameState = 5;
+			gameState = STATE_MENU;
 			OS_playSound(OS_snd_click);
 			return;
 		}
 	}
 
-	if (gameState == 4) // nextLevel
+	if (gameState == STATE_NEXT_LEVEL) // nextLevel
 	{
 		if (msgAlpha.idle)
 		{
@@ -599,7 +610,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			if (currLev >= nLevels)
 			{
 				interpolator_setVal(&gameAlpha, 0);
-				gameState = 5;
+				gameState = STATE_MENU;
 				return;
 			}
 
@@ -610,7 +621,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 			vbosCreated = 0;
 
 			interpolator_setVal(&gameAlpha, 1);
-			gameState = 0;
+			gameState = STATE_PLAY;
 
 			if (levels[currLev]->tutPic > 0)
 			{
@@ -622,7 +633,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 				interpolator_setVal(&rightButtAlpha, 1);
 				interpolator_setValImmediate(&tutPicAlpha, 0);
 				interpolator_setVal(&tutPicAlpha, 1);
-				gameState = 7;
+				gameState = STATE_TUT;
 			}
 
 			if (levels[currLev]->tutDesc != NULL)
@@ -642,7 +653,7 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 		}
 	}
 
-	if (gameState == 5)
+	if (gameState == STATE_MENU)
 	{
 		if (gameAlpha.idle && leftButtAlpha.idle)
 		{
@@ -654,11 +665,11 @@ void game_logic(float timeElapsed, SceneEvents *evt)
 		}
 	}
 
-	if (gameState == 6)
+	if (gameState == STATE_RESTART)
 	{
 		if (msgAlpha.idle && leftButtAlpha.idle)
 		{
-			gameState = 0;
+			gameState = STATE_PLAY;
 		}
 	}
 }
@@ -895,7 +906,7 @@ void game_render()
 		glPopMatrix();
 	}
 
-	if (gameState != 7)
+	if (gameState != STATE_TUT)
 		if (centreMsg[0] != 0)
 		{
 			float alph = msgAlpha.curr;
